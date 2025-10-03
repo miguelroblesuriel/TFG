@@ -1,1 +1,1 @@
-__all__ = ["cosine_greedy", "modified_cosine", "ms2DeepScore", "tanimoto"]
+__all__ = ["cosine_greedy", "modified_cosine", "ms2DeepScore", "tanimoto", "method_difference"]

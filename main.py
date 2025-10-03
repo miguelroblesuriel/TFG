@@ -7,6 +7,8 @@ from Comparison.modified_cosine import modified_cosine
 from Comparison.cosine_greedy import cosine_greedy
 from Comparison.tanimoto import tanimoto
 from Comparison.ms2DeepScore import ms2DeepScore
+from Comparison.method_difference import method_difference
+from Visualization.plot_differences_histogram import plot_differences_histogram
 
 import os
 
@@ -21,7 +23,20 @@ for s in spectra:
     s = add_fingerprint(s)           # add fingerprint
     processed_spectra.append(s)
 
-print(cosine_greedy(processed_spectra,processed_spectra))
-print(modified_cosine(processed_spectra,processed_spectra))
-print(tanimoto(processed_spectra,processed_spectra))
+ms2_scores = ms2DeepScore(processed_spectra,processed_spectra)
+greedy_scores = cosine_greedy(processed_spectra,processed_spectra)
+modified_scores = modified_cosine(processed_spectra,processed_spectra)
+tanimoto_scores = tanimoto(processed_spectra,processed_spectra)
+
+"""
+print("Ms2: ", method_difference(tanimoto_scores,ms2_scores))
+print("Greedy: ", method_difference(tanimoto_scores,greedy_scores))
+print("Modified: ", method_difference(tanimoto_scores,modified_scores))
+"""
+scores= []
+scores.append(greedy_scores)
+scores.append(modified_scores)
+scores.append(ms2_scores)
+plot_differences_histogram(tanimoto_scores,scores)
+
 
