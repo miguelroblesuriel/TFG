@@ -1,1 +1,1 @@
-__all__ = ["plot_differences_histogram"]
+__all__ = ["plot_differences_histogram", "dot_plot"]
