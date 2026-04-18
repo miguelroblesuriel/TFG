@@ -5,21 +5,17 @@ import numpy as np
 import math
 from torch.utils.data import Dataset
 
-class Spectra_dataset(Dataset):
+class Spectra_dataset_non_random(Dataset):
     def __init__(self, dupla, tripletas, scores):
         self.dupla = dupla
         self.tripletas = tripletas
         self.scores = scores
-        scores_squared = np.array([i ** 2 for i in self.scores])
-        self.p_normalized = scores_squared / scores_squared.sum()
-        self.indices = np.arange(len(self.tripletas))
 
     def __len__(self):
         return len(self.tripletas)
 
-    def __getitem__(self, item):
+    def __getitem__(self, idx):
         anchor = self.dupla[0]
         positive = self.dupla[1]
-        chosen_index = np.random.choice(self.indices, p=self.p_normalized)
-        negative = self.tripletas[chosen_index]
+        negative = self.tripletas[idx]
         return anchor, positive, negative

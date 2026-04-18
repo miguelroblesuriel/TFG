@@ -1,1 +1,1 @@
-__all__ = ["spectra_preprocessing"]
+__all__ = ["spectra_preprocessing", "npy_annotation" , "get_instrument_type"]

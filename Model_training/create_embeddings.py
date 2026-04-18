@@ -1,10 +1,10 @@
 import numpy as np
 def create_embeddings(scan,intensity,mz,precmz):
-    embedding = []
-    embedding.append(precmz.tolist())
-    embedding.append(mz.tolist())
-    embedding.append(intensity.tolist())
-    embedding= np.concatenate(embedding).tolist()
+    embedding = (
+            precmz.astype(float).tolist() +
+            mz.astype(float).tolist() +
+            intensity.astype(float).tolist()
+    )
     scan_info = {
         'scan': scan,
         'embedding': embedding

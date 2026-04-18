@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
+import subprocess
 from massql import msql_fileloading
 from Model_training.create_embeddings import create_embeddings
 from Model_training.add_padding import add_padding
-import sqlite3
+import psycopg2
 import json
 import os
 from pathlib import Path
@@ -14,9 +15,11 @@ def extract_embeddings(npy_fileroute,mzml_fileroute,filename):
         scans = []
         for triplet in data:
             idx = triplet['dupla'].index
-            for i in range(3):
+            print(idx)
+            for i in range(idx.max()+1):
                 if i in idx:
                     scans.append(triplet['dupla'][i])
+                    print(triplet['dupla'][i])
             if triplet['triplet'] != []:
                 for number in triplet['triplet']:
                     scans.append(number)
@@ -32,46 +35,54 @@ def extract_embeddings(npy_fileroute,mzml_fileroute,filename):
                 if length > max_length:
                     max_length = length
 
-        conn = sqlite3.connect("D:/embeddings.db")
+
+        conn = psycopg2.connect(
+            dbname="postgres",
+            user="postgres",
+            password="postgres",
+            host='172.25.128.1',
+            port="5432"
+        )
         cursor = conn.cursor()
 
-        # Create table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS embeddings (
-            scan INTEGER NOT NULL,
-            filename TEXT NOT NULL,
-            embedding BLOB NOT NULL,
-            PRIMARY KEY (scan, filename)
-        )
-        """)
+        try:
+            for embedding_item in embedded_scans:
+                padded_emb = add_padding(embedding_item['embedding'], max_length)
+                print(padded_emb)
+                scan_val = int(embedding_item['scan'])
+                print(scan_val)
+                embedding_bytes = json.dumps(padded_emb).encode('utf-8')
 
-        conn.commit()
+                query = """
+                        INSERT INTO embeddings (scan, filename, embedding)
+                        VALUES (%s, %s, %s) ON CONFLICT (scan, filename) 
+                DO \
+                        UPDATE SET embedding = EXCLUDED.embedding; \
+                        """
 
-
-        for embedding in embedded_scans:
-            embedding['embedding']  = add_padding(embedding['embedding'], max_length)
-            scan = embedding['scan']
-            embedding = embedding['embedding']
-            cursor.execute("""
-            INSERT OR REPLACE INTO embeddings (scan, filename, embedding)
-            VALUES (?, ?, ?)
-            """, (scan, filename, json.dumps(embedding)))
+                cursor.execute(query, (scan_val, filename, embedding_bytes))
 
             conn.commit()
+            print("Datos insertados/actualizados correctamente.")
 
-        conn.close()
-        np.save('unique_embedded_scans.npy', embedded_scans)
+        except Exception as e:
+            conn.rollback()
+            print(f"Error al insertar: {e}")
+
+        finally:
+            cursor.close()
+            conn.close()
     except Exception as e:
         print(f"An error occurred while processing {filename}: {e}")
 
 
 if __name__ == "__main__":
-    input_npy_filenames = [f for f in os.listdir('D:/triplet_data') if f.endswith(".npy")]
-    input_mzml_filenames = [f for f in os.listdir('D:/filedownloads_flat') if f.endswith(".mzML")]
+    input_npy_filenames = [f for f in os.listdir('/mnt/d/triplet_data5/') if f.endswith(".npy")]
+    input_mzml_filenames = [f for f in os.listdir('/mnt/d/filedownloads_flat/') if f.endswith(".mzML")]
     for npy_filename in input_npy_filenames:
         filename = npy_filename.replace("_triplets.npy", "")
-        npy_fileroute = os.path.join('D:/triplet_data', npy_filename)
-        mzml_fileroute = os.path.join('D:/filedownloads_flat', filename + ".mzML")
+        npy_fileroute = os.path.join('/mnt/d/triplet_data5/', npy_filename)
+        mzml_fileroute = os.path.join('/mnt/d/filedownloads_flat/', filename + ".mzML")
         if os.path.exists(mzml_fileroute):
             print("analysing file: ", filename)
             extract_embeddings(npy_fileroute, mzml_fileroute, filename)
