@@ -1,9 +1,11 @@
 import os
 import pandas as pd
+from sympy.printing.pytorch import torch
 from torchvision.io import decode_image
 import numpy as np
 import math
 from torch.utils.data import Dataset
+import torch
 
 class Spectra_dataset(Dataset):
     def __init__(self, dupla, tripletas, scores):
@@ -22,4 +24,7 @@ class Spectra_dataset(Dataset):
         positive = self.dupla[1]
         chosen_index = np.random.choice(self.indices, p=self.p_normalized)
         negative = self.tripletas[chosen_index]
+        anchor = torch.tensor(anchor, dtype=torch.float32)
+        positive = torch.tensor(positive, dtype=torch.float32)
+        negative = torch.tensor(negative, dtype=torch.float32)
         return anchor, positive, negative

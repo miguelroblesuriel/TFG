@@ -7,6 +7,7 @@ class NeuralNetwork(nn.Module):
     def __init__(self, max_length):
         super().__init__()
         self.max_length = max_length
+        self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(self.max_length, 512),
             nn.ReLU(),
@@ -16,5 +17,6 @@ class NeuralNetwork(nn.Module):
         )
 
     def forward(self, x):
+        x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return  F.normalize(logits, p=2, dim=1)

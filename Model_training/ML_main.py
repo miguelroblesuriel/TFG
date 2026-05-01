@@ -5,32 +5,44 @@ from torch.utils.data import DataLoader
 from Model_training.get_dataset_from_npy import get_dataset_from_npy
 from Model_training.NeuralNetwork import NeuralNetwork
 from torch import nn
+from Visualization.loss_function import plot_loss
+from Visualization.triplet_visualization import visualize_embeddings_bs1
 
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and dropout layers
     # Unnecessary in this situation but added for best practices
     model.train()
+    test_loss = 0
+    num_batches = len(dataloader)
     for batch, (anchor, positive, negative) in enumerate(dataloader):
+        """
         anchor_tensor = torch.stack(anchor).float()
         positive_tensor = torch.stack(positive).float()
         negative_tensor = torch.stack(negative).float()
-        anchor_tensor = anchor_tensor.view(1, -1)
-        positive_tensor = positive_tensor.view(1, -1)
-        negative_tensor = negative_tensor.view(1, -1)
+        """
+        anchor_tensor = anchor.view(1, -1)
+        positive_tensor = positive.view(1, -1)
+        negative_tensor = negative.view(1, -1)
         anchor = model(anchor_tensor.to(device))
         positive = model(positive_tensor.to(device))
         negative = model(negative_tensor.to(device))
         loss = loss_fn(anchor,positive, negative)
-
+        test_loss += loss.item()
         # Backpropagation
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
+
         if batch % 100 == 0:
             loss, current = loss.item(), batch * 1 + len(anchor)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+
+    test_loss /= num_batches
+    return test_loss
+
+
 
 def test_loop(dataloader, model, loss_fn):
     # Set the model to evaluation mode - important for batch normalization and dropout layers
@@ -44,39 +56,42 @@ def test_loop(dataloader, model, loss_fn):
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
         for anchor,positive,negative in dataloader:
-            anchor_tensor = torch.stack(anchor).float()
-            positive_tensor = torch.stack(positive).float()
-            negative_tensor = torch.stack(negative).float()
-            anchor_tensor = anchor_tensor.view(1, -1)
-            positive_tensor = positive_tensor.view(1, -1)
-            negative_tensor = negative_tensor.view(1, -1)
+            anchor_tensor = anchor.view(1, -1)
+            positive_tensor = positive.view(1, -1)
+            negative_tensor = negative.view(1, -1)
             anchor = model(anchor_tensor.to(device))
             positive = model(positive_tensor.to(device))
             negative = model(negative_tensor.to(device))
-            test_loss += loss_fn(anchor, positive, negative).item()
-            if test_loss < 1:
+            perdida = loss_fn(anchor, positive, negative).item()
+            test_loss += perdida
+
+            if perdida < 1:
                 correct += 1
 
     test_loss /= num_batches
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    return test_loss
+
 
 
 if __name__ == '__main__':
-    input_training_filepath = "/mnt/d/npy_anotados_training/"
+    input_training_filepath = "/mnt/d/npy_anotados_training_2/"
     input_testing_filepath = "/mnt/d/npy_anotados_testing/"
     all_train_list = []
     all_test_list = []
 
     for filename in os.listdir(input_training_filepath):
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath)
+        print(filename)
         all_train_list.extend(embeddings)
 
     for filename in os.listdir(input_testing_filepath):
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath)
-        emb_length = len(embeddings[0]['duplas'][0])
+        print(filename)
+        emb_length = len(embeddings[0]['duplas'][0][0])
         all_test_list.extend(embeddings)
-
+    print("Carga terminada")
     combined_training_dataset = ConcatDataset(all_train_list)
     combined_testing_dataset = ConcatDataset(all_test_list)
     train_dataloader = DataLoader(combined_training_dataset, batch_size=1, shuffle=True)
@@ -84,7 +99,7 @@ if __name__ == '__main__':
 
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
     print(f"Using {device} device")
-    model = NeuralNetwork(emb_length).to(device)
+    model = NeuralNetwork(emb_length*2).to(device)
     """
     anchor, positive, negative = next(iter(train_dataloader))
     anchor_tensor = torch.stack(anchor).float()
@@ -105,11 +120,19 @@ if __name__ == '__main__':
     loss_fn = nn.TripletMarginLoss(margin=1.0, p=2, eps=1e-7)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-    epochs = 10
+    epochs = 2
+    train_loss_plot = []
+    test_loss_plot = []
     for t in range(epochs):
+        visualize_embeddings_bs1(model, test_dataloader, device, 30)
         print(f"Epoch {t + 1}\n-------------------------------")
-        train_loop(train_dataloader, model, loss_fn, optimizer)
-        test_loop(test_dataloader, model, loss_fn)
+        avg_train_lss = train_loop(train_dataloader, model, loss_fn, optimizer)
+        train_loss_plot.append(avg_train_lss)
+        avg_test_loss = test_loop(test_dataloader, model, loss_fn)
+        test_loss_plot.append(avg_test_loss)
+
+    visualize_embeddings_bs1(model, test_dataloader, device, 30)
+    plot_loss(train_loss_plot, test_loss_plot)
     print("Done!")
 
 

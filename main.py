@@ -18,9 +18,13 @@ path_data = "./"
 file_mgf = os.path.join(path_data,
                         "GNPS-SELLECKCHEM-FDA-PART1.mgf")
 
+spectra = list(load_from_mgf(file_mgf))
+for spec in spectra:
+    intensidades = spec.intensities
+    print(intensidades / np.max(intensidades))
 
 
-
+"""
 greedy_scores = cosine_greedy(file_mgf)
 modified_scores = modified_cosine(file_mgf)
 hungarian_scores = cosine_hungarian(file_mgf)
@@ -43,7 +47,7 @@ dot_plot(tanimoto_scores,greedy_scores)
 dot_plot(tanimoto_scores,modified_scores)
 
 
-"""
+
 with open("resultados.txt", "w", encoding="utf-8") as f:
     f.write(f"Ms2: {method_difference(tanimoto_scores, ms2_scores)}\n")
     f.write(f"Greedy: {method_difference(tanimoto_scores, greedy_scores)}\n")

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on what’s available
+#matplotlib.use('Qt5Agg')  # or 'Qt5Agg', depending on what’s available
 import matplotlib.pyplot as plt
 
 def dot_plot(A, B):

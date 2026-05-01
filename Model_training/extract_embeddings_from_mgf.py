@@ -9,34 +9,27 @@ from Model_training.add_padding_2 import add_padding_2
 import psycopg2
 import json
 import os
+from matchms.importing import load_from_mgf
 from pathlib import Path
-def extract_embeddings(npy_fileroute,mzml_fileroute,filename):
-    try:
-        data = np.load(npy_fileroute, allow_pickle= True)
-        ms1_df, ms2_df = msql_fileloading.load_data(mzml_fileroute)
-        scans = []
-        for triplet in data:
-            idx = triplet['dupla'].index
-            print(idx)
-            for i in range(idx.max()+1):
-                if i in idx:
-                    scans.append(triplet['dupla'][i])
-                    print(triplet['dupla'][i])
-            if triplet['triplet'] != []:
-                for number in triplet['triplet']:
-                    scans.append(number)
 
-        embedded_scans =[]
-        unique_scans = []
+def extract_embeddings(path_data,filename):
+    try:
+        file_mgf = os.path.join(path_data,
+                                filename)
+
+        spectra = list(load_from_mgf(file_mgf))
+        i = 1
         max_length = 0
-        for scan in scans:
-            if scan not in unique_scans:
-                unique_scans.append(scan)
-                embedding, length = create_embeddings_2(scan,ms2_df[ms2_df['scan'] == scan]['i_norm'].to_numpy(),(np.sort(ms2_df[ms2_df['scan'] == scan]['mz'].to_numpy())), ms2_df[ms2_df['scan'] == scan]['precmz'].unique())
-                print(embedding)
+        embedded_scans = []
+        for spec in spectra:
+            if len(spec.intensities) > 0:
+                intensidades = spec.intensities
+                intensidades_normalized = intensidades / np.max(intensidades)
+                embedding, length = create_embeddings_2(i,intensidades_normalized,spec.mz, spec.metadata['precursor_mz'])
                 embedded_scans.append(embedding)
                 if length > max_length:
                     max_length = length
+            i += 1
 
 
         conn = psycopg2.connect(
@@ -80,12 +73,6 @@ def extract_embeddings(npy_fileroute,mzml_fileroute,filename):
 
 
 if __name__ == "__main__":
-    input_npy_filenames = [f for f in os.listdir('/mnt/d/triplet_data5/') if f.endswith(".npy")]
-    input_mzml_filenames = [f for f in os.listdir('/mnt/d/filedownloads_flat/') if f.endswith(".mzML")]
-    for npy_filename in input_npy_filenames:
-        filename = npy_filename.replace("_triplets.npy", "")
-        npy_fileroute = os.path.join('/mnt/d/triplet_data5/', npy_filename)
-        mzml_fileroute = os.path.join('/mnt/d/filedownloads_flat/', filename + ".mzML")
-        if os.path.exists(mzml_fileroute):
-            print("analysing file: ", filename)
-            extract_embeddings(npy_fileroute, mzml_fileroute, filename)
+    path_data = "./"
+    filename = "GNPS-CANDIDATE-CARNITINES-MASSQL_cleaned.mgf"
+    extract_embeddings(path_data,filename)
