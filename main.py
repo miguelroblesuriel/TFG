@@ -5,49 +5,58 @@ from matchms.importing import load_from_mgf
 from matchms import calculate_scores
 from Comparison.modified_cosine import modified_cosine
 from Comparison.cosine_greedy import cosine_greedy
+from Comparison.get_greedy_hits import get_greedy_hits
+from Comparison.get_modified_hits import get_modified_hits
 from Comparison.cosine_hungarian import cosine_hungarian
 from Comparison.tanimoto import tanimoto
 from Comparison.ms2DeepScore import ms2DeepScore_standard, ms2DeepScore_trained
 from Comparison.extensive_method_difference import  extensive_method_difference
 from Visualization.plot_differences_histogram import plot_differences_histogram
 from Visualization.dot_plot import dot_plot
+from Preprocessing.spectra_preprocessing import spectra_preprocessing
 
 import os
 
 path_data = "./"
 file_mgf = os.path.join(path_data,
-                        "GNPS-SELLECKCHEM-FDA-PART1.mgf")
-
+                        "cleaned_spectra.mgf")
 spectra = list(load_from_mgf(file_mgf))
-for spec in spectra:
-    intensidades = spec.intensities
-    print(intensidades / np.max(intensidades))
-
-
-"""
-greedy_scores = cosine_greedy(file_mgf)
-modified_scores = modified_cosine(file_mgf)
-hungarian_scores = cosine_hungarian(file_mgf)
+spectra = spectra_preprocessing(spectra[:100])
+modified_scores, modified_scores_raw = modified_cosine(spectra)
+hits, mean = get_modified_hits(spectra, modified_scores_raw)
+print(hits)
+print(mean)
+print("-------------------------------------------------------------------------------")
 tanimoto_scores = tanimoto(file_mgf)
+"""
+greedy_scores, greedy_scores_raw = cosine_greedy(spectra)
+hungarian_scores = cosine_hungarian(file_mgf)
 ms2_standard_scores = ms2DeepScore_standard(file_mgf)
-
+"""
+"""
 print("Ms2: ")
 extensive_method_difference(tanimoto_scores,ms2_standard_scores)
+
 print("Greedy: ")
 extensive_method_difference(tanimoto_scores,greedy_scores)
+
 print("Modified: ")
 extensive_method_difference(tanimoto_scores,modified_scores)
 print("Hungarian: ")
 extensive_method_difference(tanimoto_scores,hungarian_scores)
+"""
 
-
+"""
 dot_plot(tanimoto_scores,ms2_standard_scores)
 dot_plot(tanimoto_scores,hungarian_scores)
+
 dot_plot(tanimoto_scores,greedy_scores)
+
 dot_plot(tanimoto_scores,modified_scores)
+"""
 
 
-
+"""
 with open("resultados.txt", "w", encoding="utf-8") as f:
     f.write(f"Ms2: {method_difference(tanimoto_scores, ms2_scores)}\n")
     f.write(f"Greedy: {method_difference(tanimoto_scores, greedy_scores)}\n")

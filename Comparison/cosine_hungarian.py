@@ -14,3 +14,4 @@ def cosine_hungarian(file1,file2 = None):
     scores = calculate_scores(spectra1,spectra2,similarity_measure,is_symmetric=False)
     scores_array = scores.scores.to_array()
     return scores_array["CosineHungarian_score"]
+
