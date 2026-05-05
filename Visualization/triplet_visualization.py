@@ -2,10 +2,13 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
+from datetime import datetime
 
 def visualize_embeddings_bs1(model, dataloader, device, num_samples=30):
     model.eval()
     all_a, all_p, all_n = [], [], []
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nombre_archivo = f"plot_{now}.png"
 
     with torch.no_grad():
         for i, (anchor, positive, negative) in enumerate(dataloader):
@@ -40,5 +43,6 @@ def visualize_embeddings_bs1(model, dataloader, device, num_samples=30):
 
     plt.legend()
     plt.title("2D Visualization of Embedding Space (t-SNE)")
-    plt.show()
+    plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
+    plt.close()
 

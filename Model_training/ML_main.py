@@ -7,6 +7,8 @@ from Model_training.NeuralNetwork import NeuralNetwork
 from torch import nn
 from Visualization.loss_function import plot_loss
 from Visualization.triplet_visualization import visualize_embeddings_bs1
+import psycopg2
+import yaml
 
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
@@ -76,24 +78,39 @@ def test_loop(dataloader, model, loss_fn):
 
 
 if __name__ == '__main__':
-    input_training_filepath = "/mnt/d/npy_anotados_training_2/"
-    input_testing_filepath = "/mnt/d/npy_anotados_testing/"
+    with open('config_ML.yaml', 'r') as file:
+        yaml_data = yaml.safe_load(file)
+    input_training_filepath = yaml_data['input_training_filepath']
+    input_testing_filepath = yaml_data['input_testing_filepath']
+    output_filepath = yaml_data['output_filepath']
     all_train_list = []
     all_test_list = []
+    dbname = yaml_data['dbname']
+    user = yaml_data['user']
+    password = yaml_data['password']
+    host = yaml_data['host']
+    port = yaml_data['port']
+    conn = psycopg2.connect(
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
 
-    for filename in os.listdir(input_training_filepath):
-        embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath)
+    for filename in os.listdir(input_training_filepath)[:10]:
+        embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath, conn)
         print(filename)
         all_train_list.extend(embeddings)
 
-    for filename in os.listdir(input_testing_filepath):
-        embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath)
+    for filename in os.listdir(input_testing_filepath)[:10]:
+        embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath, conn)
         print(filename)
         emb_length = len(embeddings[0]['duplas'][0][0])
         all_test_list.extend(embeddings)
     print("Carga terminada")
-    combined_training_dataset = ConcatDataset(all_train_list)
-    combined_testing_dataset = ConcatDataset(all_test_list)
+    combined_training_dataset = ConcatDataset(all_train_list[:10])
+    combined_testing_dataset = ConcatDataset(all_test_list[:10])
     train_dataloader = DataLoader(combined_training_dataset, batch_size=1, shuffle=True)
     test_dataloader = DataLoader(combined_testing_dataset, batch_size=1, shuffle=True)
 
@@ -120,7 +137,7 @@ if __name__ == '__main__':
     loss_fn = nn.TripletMarginLoss(margin=1.0, p=2, eps=1e-7)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-    epochs = 2
+    epochs = yaml_data['epochs']
     train_loss_plot = []
     test_loss_plot = []
     for t in range(epochs):
@@ -133,6 +150,7 @@ if __name__ == '__main__':
 
     visualize_embeddings_bs1(model, test_dataloader, device, 30)
     plot_loss(train_loss_plot, test_loss_plot)
+    torch.save(model.state_dict(), os.path.join(output_filepath,"pesos_modelo.pt"))
     print("Done!")
 
 

@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
-
+from datetime import datetime
 
 def plot_loss(train_losses, test_losses):
     plt.figure(figsize=(10, 6))
-
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nombre_archivo = f"graph_{now}.png"
     # Línea de entrenamiento
     plt.plot(train_losses, label='Training Loss', color='#1f77b4', linewidth=2)
 
@@ -20,6 +21,7 @@ def plot_loss(train_losses, test_losses):
     plt.legend()
     plt.ylim(bottom=0)  # Mantiene el inicio en 0
 
-    plt.show()
+    plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
+    plt.close()
 
 

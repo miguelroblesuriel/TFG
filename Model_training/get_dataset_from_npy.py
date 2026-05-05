@@ -2,7 +2,7 @@ import numpy as np
 import json
 import os
 from Model_training.Spectra_dataset import Spectra_dataset
-import psycopg2
+
 
 
 def obtener_embedding_archivo(conn, nombre_archivo):
@@ -64,14 +64,7 @@ def obtener_embedding_individual(conn, nombre_archivo, scan_id):
         else:
             return None
 
-def get_dataset_from_npy(nombre_archivo, filepath):
-    conn = psycopg2.connect(
-        dbname="postgres",
-        user="postgres",
-        password="postgres",
-        host='172.25.128.1',
-        port="5432"
-    )
+def get_dataset_from_npy(nombre_archivo, filepath, conn):
     database_filename = nombre_archivo
     mapa = obtener_embedding_archivo(conn, database_filename)
     file_name = os.path.join(nombre_archivo + '_triplets_anotado')
