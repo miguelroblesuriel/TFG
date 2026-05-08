@@ -4,6 +4,7 @@ from torch.utils.data import ConcatDataset
 from torch.utils.data import DataLoader
 from Model_training.get_dataset_from_npy import get_dataset_from_npy
 from Model_training.NeuralNetwork import NeuralNetwork
+from Model_training.NeuralNetwork_Complex import NeuralNetwork_Complex
 from torch import nn
 from Visualization.loss_function import plot_loss
 from Visualization.triplet_visualization import visualize_embeddings_bs1
@@ -98,12 +99,12 @@ if __name__ == '__main__':
         port=port
     )
 
-    for filename in os.listdir(input_training_filepath)[:10]:
+    for filename in os.listdir(input_training_filepath)[:2]:
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath, conn)
         print(filename)
         all_train_list.extend(embeddings)
 
-    for filename in os.listdir(input_testing_filepath)[:10]:
+    for filename in os.listdir(input_testing_filepath)[:2]:
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath, conn)
         print(filename)
         emb_length = len(embeddings[0]['duplas'][0][0])
@@ -116,7 +117,7 @@ if __name__ == '__main__':
 
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
     print(f"Using {device} device")
-    model = NeuralNetwork(emb_length*2).to(device)
+    model = NeuralNetwork_Complex(emb_length).to(device)
     """
     anchor, positive, negative = next(iter(train_dataloader))
     anchor_tensor = torch.stack(anchor).float()

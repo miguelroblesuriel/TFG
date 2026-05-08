@@ -14,21 +14,39 @@ from Comparison.extensive_method_difference import  extensive_method_difference
 from Visualization.plot_differences_histogram import plot_differences_histogram
 from Visualization.dot_plot import dot_plot
 from Preprocessing.spectra_preprocessing import spectra_preprocessing
+def obtener_espectros_en_comun(spectra1,spectra2):
+    inchis = []
+    for spec in spectra1:
+        inchi1 = spec.metadata.get('inchi')
+        if inchi1:
+            for spec2 in spectra2:
+                inchi2 = spec2.metadata.get('inchi')
+                if inchi1 == inchi2 and inchi1 not in inchis:
+                    inchis.append(inchi1)
+                    print(spec.metadata['inchi'])
+    return inchis
 
 import os
 
 path_data = "./"
-file_mgf = os.path.join(path_data,
-                        "cleaned_spectra.mgf")
-spectra = list(load_from_mgf(file_mgf))
-spectra = spectra_preprocessing(spectra[:100])
+file_mgf1 = os.path.join(path_data,
+                        "GNPS-SELLECKCHEM-FDA-PART1.mgf")
+file_mgf2 = os.path.join(path_data,
+                        "MONA.mgf")
+spectra1 = list(load_from_mgf(file_mgf1))
+print("cargando archivo 2")
+spectra2 = list(load_from_mgf(file_mgf2))
+print(spectra2[0].metadata)
+inchis = obtener_espectros_en_comun(spectra1,spectra2)
+print(len(inchis))
+"""
 modified_scores, modified_scores_raw = modified_cosine(spectra)
 hits, mean = get_modified_hits(spectra, modified_scores_raw)
 print(hits)
 print(mean)
 print("-------------------------------------------------------------------------------")
 tanimoto_scores = tanimoto(file_mgf)
-"""
+
 greedy_scores, greedy_scores_raw = cosine_greedy(spectra)
 hungarian_scores = cosine_hungarian(file_mgf)
 ms2_standard_scores = ms2DeepScore_standard(file_mgf)
