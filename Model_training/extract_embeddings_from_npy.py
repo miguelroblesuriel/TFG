@@ -32,15 +32,20 @@ def extract_embeddings(npy_fileroute,mzml_fileroute,filename):
         for scan in scans:
             if scan not in unique_scans:
                 unique_scans.append(scan)
-                embedding, length = create_embeddings_2(scan,ms2_df[ms2_df['scan'] == scan]['i_norm'].to_numpy(),(np.sort(ms2_df[ms2_df['scan'] == scan]['mz'].to_numpy())), ms2_df[ms2_df['scan'] == scan]['precmz'].unique())
-                print(embedding)
+                i = ms2_df[ms2_df['scan'] == scan]['i_norm'].to_numpy()
+                mz = ms2_df[ms2_df['scan'] == scan]['mz'].to_numpy()
+                indices_top = np.argsort(i)[-100:]
+                indices_ordenados = np.sort(indices_top)
+                i_filtrado = i[indices_ordenados]
+                mz_filtrado = mz[indices_ordenados]
+                embedding, length = create_embeddings_2(scan,i_filtrado,mz_filtrado, ms2_df[ms2_df['scan'] == scan]['precmz'].unique())
                 embedded_scans.append(embedding)
                 if length > max_length:
                     max_length = length
 
 
         conn = psycopg2.connect(
-            dbname="postgres",
+            dbname="embeddings",
             user="postgres",
             password="postgres",
             host='172.25.128.1',
@@ -57,7 +62,7 @@ def extract_embeddings(npy_fileroute,mzml_fileroute,filename):
                 embedding_bytes = json.dumps(padded_emb).encode('utf-8')
 
                 query = """
-                        INSERT INTO embeddings_2 (scan, filename, embedding)
+                        INSERT INTO embeddings (scan, filename, embedding)
                         VALUES (%s, %s, %s) ON CONFLICT (scan, filename) 
                 DO \
                         UPDATE SET embedding = EXCLUDED.embedding; \

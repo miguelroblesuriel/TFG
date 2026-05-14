@@ -4,11 +4,12 @@ input_testing_filepath: "/mnt/d/npy_anotados_testing/"
 output_filepath: "./"
 
 # Configuracion de la base de datos
-dbname: "postgres"
+dbname: "embeddings"
 user: "postgres"
 password: "postgres"
 host: "172.25.128.1"
 port: "5432"
+mode: "local" #remote/local en función de dónde tengas la base de datos
 
 # Configuracion ML
 epochs: 2

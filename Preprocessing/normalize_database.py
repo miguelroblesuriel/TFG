@@ -4,14 +4,14 @@ from Model_training.add_padding import add_padding
 
 if __name__ == '__main__':
     conn = psycopg2.connect(
-        dbname="postgres",
+        dbname="embeddings",
         user="postgres",
         password="postgres",
         host='172.25.128.1',
         port="5432"
     )
     cursor = conn.cursor()
-    cursor.execute("SELECT scan, filename, embedding FROM embeddings_2;")
+    cursor.execute("SELECT scan, filename, embedding FROM embeddings;")
     rows = cursor.fetchall()
 
     print(f"Procesando {len(rows)} filas...")
@@ -20,6 +20,7 @@ if __name__ == '__main__':
         embedding = emb_raw.tobytes().decode('utf-8')
         embedding = json.loads(embedding)
         print(embedding)
+        print(len(embedding[0]))
         if len(embedding[0]) > max_len:
             max_len = len(embedding[0])
             print(max_len)

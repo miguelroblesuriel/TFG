@@ -10,6 +10,8 @@ from Visualization.loss_function import plot_loss
 from Visualization.triplet_visualization import visualize_embeddings_bs1
 import psycopg2
 import yaml
+import pg8000.native 
+import socks
 
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
@@ -23,17 +25,20 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         anchor_tensor = torch.stack(anchor).float()
         positive_tensor = torch.stack(positive).float()
         negative_tensor = torch.stack(negative).float()
-        """
+        
         anchor_tensor = anchor.view(1, -1)
         positive_tensor = positive.view(1, -1)
         negative_tensor = negative.view(1, -1)
-        anchor = model(anchor_tensor.to(device))
-        positive = model(positive_tensor.to(device))
-        negative = model(negative_tensor.to(device))
+        """
+        
+        anchor = model(anchor.to(device))
+        positive = model(positive.to(device))
+        negative = model(negative.to(device))
         loss = loss_fn(anchor,positive, negative)
         test_loss += loss.item()
         # Backpropagation
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         optimizer.zero_grad()
 
@@ -59,12 +64,14 @@ def test_loop(dataloader, model, loss_fn):
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
         for anchor,positive,negative in dataloader:
+            """
             anchor_tensor = anchor.view(1, -1)
             positive_tensor = positive.view(1, -1)
             negative_tensor = negative.view(1, -1)
-            anchor = model(anchor_tensor.to(device))
-            positive = model(positive_tensor.to(device))
-            negative = model(negative_tensor.to(device))
+            """
+            anchor = model(anchor.to(device))
+            positive = model(positive.to(device))
+            negative = model(negative.to(device))
             perdida = loss_fn(anchor, positive, negative).item()
             test_loss += perdida
 
@@ -79,39 +86,52 @@ def test_loop(dataloader, model, loss_fn):
 
 
 if __name__ == '__main__':
+    print("a")
     with open('config_ML.yaml', 'r') as file:
         yaml_data = yaml.safe_load(file)
     input_training_filepath = yaml_data['input_training_filepath']
     input_testing_filepath = yaml_data['input_testing_filepath']
     output_filepath = yaml_data['output_filepath']
+    mode = yaml_data['mode']
     all_train_list = []
     all_test_list = []
-    dbname = yaml_data['dbname']
-    user = yaml_data['user']
-    password = yaml_data['password']
-    host = yaml_data['host']
-    port = yaml_data['port']
-    conn = psycopg2.connect(
-        dbname=dbname,
-        user=user,
-        password=password,
-        host=host,
-        port=port
-    )
+    if mode == "remote":
+      s = socks.socksocket()
+      s.set_proxy(socks.SOCKS5, "127.0.0.1", 1055)
+      s.settimeout(5)
+      s.connect(("100.114.94.10", 5432))
+      conn = pg8000.native.Connection(
+      user=yaml_data['user'],
+      password=yaml_data['password'],
+      database=yaml_data['dbname'],
+      sock=s  
+      )
+    elif mode =="local":
+      conn = pg8000.native.Connection(
+      user=yaml_data['user'],
+      password=yaml_data['password'],
+      database=yaml_data['dbname'],
+      host=yaml_data['host'], 
+      port=yaml_data['port']          
+      )
 
-    for filename in os.listdir(input_training_filepath)[:2]:
+
+    for filename in os.listdir(input_training_filepath):
+      if filename.endswith(".npy"):
+        print("a")
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath, conn)
         print(filename)
         all_train_list.extend(embeddings)
 
-    for filename in os.listdir(input_testing_filepath)[:2]:
+    for filename in os.listdir(input_testing_filepath):
+      if filename.endswith(".npy"):
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath, conn)
         print(filename)
         emb_length = len(embeddings[0]['duplas'][0][0])
         all_test_list.extend(embeddings)
     print("Carga terminada")
-    combined_training_dataset = ConcatDataset(all_train_list[:10])
-    combined_testing_dataset = ConcatDataset(all_test_list[:10])
+    combined_training_dataset = ConcatDataset(all_train_list)
+    combined_testing_dataset = ConcatDataset(all_test_list)
     train_dataloader = DataLoader(combined_training_dataset, batch_size=1, shuffle=True)
     test_dataloader = DataLoader(combined_testing_dataset, batch_size=1, shuffle=True)
 

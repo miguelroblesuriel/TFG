@@ -34,7 +34,7 @@ class NeuralNetwork_Complex(nn.Module):
             1024,
             8,
             dim_feedforward=1024,
-            dropout=True,
+            dropout=0.3,
             activation = 'relu',
             batch_first=True,
             norm_first=True
@@ -59,29 +59,52 @@ class NeuralNetwork_Complex(nn.Module):
 
 
     def forward(self, x):
-        print(self.max_length)
         mz_frequencies =  self.sinusoidal(math.pow(10, -3.0), math.pow(10, 3.0))
-        print(mz_frequencies.shape)
+        device = x[0][0].device
+        mz_frequencies = mz_frequencies.to(device)
+        #print("Mz_frequencies", mz_frequencies)
         mz_transform = torch.einsum('bl,d->bld', x[0][0].unsqueeze(0), mz_frequencies)
+        #print("Mz_transform", mz_transform)
         mz_sin = torch.sin(mz_transform)
+        #print(mz_sin)
         mz_cos = torch.cos(mz_transform)
-        print(mz_sin)
-        print(mz_sin.shape)
+        #print(mz_cos)
         b, l, d = mz_sin.shape
-        mz = torch.zeros(b, l, 2 * d, dtype= x[0][0][0].dtype, device='cpu')
+        """
+        mz = torch.zeros(b, l, 2 * d, dtype= x[0][0][0].dtype, device=mz_sin.device)
+        print("MZ:", mz)
+        mz = mz.to(device)
+        print("MZ:", mz)
         mz[:, :, ::2] = mz_sin
         mz[:, :, 1::2] = mz_cos
-        print(mz.shape)
+        print("MZ:", mz)
+        """
+        mz = torch.stack((mz_sin, mz_cos), dim=-1).flatten(2)
+        #print("MZ nuevo:", mz)
+        mz = mz.contiguous()
         mz = self.red_sinusoidal(mz)
+        #print("MZ:", mz)
         i = x[0][1]
         i = i.unsqueeze(0)
+        i = i.to(device)
+        #print("i:", i)
+        mask = x[0][2].to(torch.bool)
+        mask = mask.unsqueeze(0)
+        mask = mask.to(device)
+        #print("mask:", mask)
         i = torch.unsqueeze(i, dim = -1)
         embedding_completo =self.red_intensidad(
                                     torch.cat([mz, i], dim=-1))
-        print(embedding_completo.shape)
-        embedding_completo = self._encoder(embedding_completo)
-        print(embedding_completo.shape)
-        embedding_ponderado = embedding_completo.mean(dim=1)
-        print(embedding_ponderado.shape)
+        #print("embedding comleto:", embedding_completo)
+        embedding_completo = self._encoder(embedding_completo, src_key_padding_mask=mask)
+        #print("embedding comleto:", embedding_completo)
+        extened_mask = mask.unsqueeze(-1)
+        masked_embeddings: torch.Tensor = embedding_completo * (~extened_mask)
+        #print("embedding masked:", masked_embeddings)
+        sum_embeddings = masked_embeddings.sum(dim=1)
+        num_valid_tokens = (~mask).sum(dim=1, keepdim=True)
+        embedding_ponderado = sum_embeddings / num_valid_tokens
+        #print(" embedding_ponderado:", embedding_ponderado)
         embedding_final = self.red_final(embedding_ponderado)
+        #print(" embedding_final:", embedding_final)
         return  embedding_final

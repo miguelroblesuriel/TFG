@@ -4,7 +4,6 @@ def get_modified_hits(spectra, scores):
     for spec in spectra:
         sorted_matches = scores.scores_by_query(spec, name="ModifiedCosine_score", sort=True)
         best_matches = [x for x in sorted_matches if x[1]["ModifiedCosine_matches"] >= 0][:10]
-        print(best_matches[0][0].get("inchi"))
         if spec.get("inchi") == best_matches[0][0].get("inchi"):
             hits += 1
             rank += 1

@@ -12,8 +12,8 @@ def obtener_embedding_archivo(conn, nombre_archivo):
         """
     query = """
             SELECT scan, embedding
-            FROM embeddings_2
-            WHERE filename = %s; \
+            FROM embeddings
+            WHERE filename = :archivo; \
             """
 
     mapa_resultado = {}
@@ -21,22 +21,22 @@ def obtener_embedding_archivo(conn, nombre_archivo):
     try:
         # Usamos un nombre de cursor para activar un "Server-side cursor"
         # si los datos son realmente masivos (opcional en la mayoría de casos)
-        with conn.cursor() as cursor:
-            print(f"Buscando datos para: {nombre_archivo}...")
-            cursor.execute(query, (nombre_archivo,))
+        
+        print(f"Buscando datos para: {nombre_archivo}...")
+        cursor = conn.run(query, archivo=nombre_archivo)
 
-            # Iterar directamente sobre el cursor es más eficiente que fetchall()
-            count = 0
-            for scan_id, embedding in cursor:
-                mapa_resultado[scan_id] = embedding
-                count += 1
+        # Iterar directamente sobre el cursor es más eficiente que fetchall()
+        count = 0
+        for scan_id, embedding in cursor:
+            mapa_resultado[scan_id] = embedding
+            count += 1
 
-            if count > 0:
-                print(f"Éxito: Mapa creado con {count} pares para el archivo.")
-            else:
-                print("No se encontraron datos.")
+        if count > 0:
+            print(f"Éxito: Mapa creado con {count} pares para el archivo.")
+        else:
+            print("No se encontraron datos.")
 
-            return mapa_resultado
+        return mapa_resultado
 
     except Exception as e:
         print(f"Error procesando miles de registros: {e}")
@@ -85,14 +85,14 @@ def get_dataset_from_npy(nombre_archivo, filepath, conn):
             duplas = item["dupla"].tolist()
             embedding_dupla1 = mapa[duplas[0]]
             embedding_dupla2 = mapa[duplas[1]]
-            embedding_dupla1 = embedding_dupla1.tobytes().decode('utf-8')
-            embedding_dupla2 = embedding_dupla2.tobytes().decode('utf-8')
+            embedding_dupla1 = embedding_dupla1.decode('utf-8')
+            embedding_dupla2 = embedding_dupla2.decode('utf-8')
             embedding_dupla1 = json.loads(embedding_dupla1)
             embedding_dupla2 = json.loads(embedding_dupla2)
             duplas = [embedding_dupla1, embedding_dupla2]
             for triplet in item["triplet"]:
                 embedding_triplet = mapa[int(triplet)]
-                embedding_triplet = embedding_triplet.tobytes().decode('utf-8')
+                embedding_triplet = embedding_triplet.decode('utf-8')
                 embedding_triplet = json.loads(embedding_triplet)
                 triplets.append(embedding_triplet)
             datasets.append(Spectra_dataset(duplas, triplets, item["scores"]))

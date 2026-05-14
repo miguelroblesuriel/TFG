@@ -20,6 +20,7 @@ def get_hits_standard(scores, comparison_table):
             j = j + 1
         rank += j
         i = i + 1
+    rank = rank/i
     return hits, rank
 
 
