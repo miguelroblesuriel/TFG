@@ -23,7 +23,7 @@ if __name__ == '__main__':
                 masc.append(0)
             else:
                 masc.append(1)
-        embedding.append(masc)
+        embedding[2] = masc
         embedding_bytes = json.dumps(embedding).encode('utf-8')
         cursor.execute(
             "UPDATE embeddings SET embedding = %s WHERE scan = %s AND filename = %s",

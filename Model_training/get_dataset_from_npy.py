@@ -76,6 +76,7 @@ def get_dataset_from_npy(nombre_archivo, filepath, conn):
     scores = []
     datasets = []
     contadordetripletas = 0
+    print(len(dict))
     for item in dict:
         triplets = []
         if item["triplet"] != []:

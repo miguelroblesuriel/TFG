@@ -2,6 +2,8 @@ import os
 import torch
 from torch.utils.data import ConcatDataset
 from torch.utils.data import DataLoader
+
+from Model_training.add_padding_2 import add_padding_2
 from Model_training.get_dataset_from_npy import get_dataset_from_npy
 from Model_training.NeuralNetwork import NeuralNetwork
 from Model_training.NeuralNetwork_Complex import NeuralNetwork_Complex
@@ -121,16 +123,21 @@ if __name__ == '__main__':
       if filename.endswith(".npy"):
         print("a")
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath, conn)
-        print(len(embeddings[0]['duplas'][0][0]))
-        print(filename)
-        all_train_list.extend(embeddings)
+        if embeddings:
+            print(filename)
+            all_train_list.extend(embeddings)
 
     for filename in os.listdir(input_testing_filepath):
       if filename.endswith(".npy"):
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath, conn)
         print(filename)
-        emb_length = len(embeddings[0]['duplas'][0][0])
-        all_test_list.extend(embeddings)
+        if embeddings:
+            if len(embeddings[0]['duplas'][0][0]) > 101:
+                print(
+                    "------------------------------------------------------------------------------------------------------------------------")
+                print(len(embeddings[0]['duplas'][0][0]))
+            emb_length = len(embeddings[0]['duplas'][0][0])
+            all_test_list.extend(embeddings)
     print("Carga terminada")
     combined_training_dataset = ConcatDataset(all_train_list)
     combined_testing_dataset = ConcatDataset(all_test_list)

@@ -1,6 +1,6 @@
 # Rutas de entrada y salida
-input_training_filepath: "/mnt/d/npy_anotados_training/"
-input_testing_filepath: "/mnt/d/npy_anotados_testing/"
+input_training_filepath: "/mnt/d/npy_anotados_training_2/"
+input_testing_filepath: "/mnt/d/npy_anotados_testing_2/"
 output_filepath: "./"
 
 # Configuracion de la base de datos

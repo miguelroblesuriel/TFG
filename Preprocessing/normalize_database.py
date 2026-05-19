@@ -37,7 +37,7 @@ if __name__ == '__main__':
         print(len(embedding[0]), len(embedding[1]))
         embedding_bytes = json.dumps(embedding).encode('utf-8')
         cursor.execute(
-            "UPDATE embeddings_2 SET embedding = %s WHERE scan = %s AND filename = %s",
+            "UPDATE embeddings SET embedding = %s WHERE scan = %s AND filename = %s",
             (embedding_bytes, scan, filename)
         )
     conn.commit()
