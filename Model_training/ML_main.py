@@ -117,7 +117,7 @@ if __name__ == '__main__':
       )
 
 
-    for filename in os.listdir(input_training_filepath)[:1]:
+    for filename in os.listdir(input_training_filepath):
       if filename.endswith(".npy"):
         print("a")
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath, conn)
@@ -125,7 +125,7 @@ if __name__ == '__main__':
         print(filename)
         all_train_list.extend(embeddings)
 
-    for filename in os.listdir(input_testing_filepath)[:1]:
+    for filename in os.listdir(input_testing_filepath):
       if filename.endswith(".npy"):
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath, conn)
         print(filename)
