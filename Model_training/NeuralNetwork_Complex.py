@@ -27,9 +27,15 @@ class NeuralNetwork_Complex(nn.Module):
     def __init__(self, max_length):
         super().__init__()
         self.max_length = max_length
-        self.red_sinusoidal = MultiFeedForwardNetwork(1024, [1024], 1024)
-        self.red_intensidad = MultiFeedForwardNetwork(1025, [1024], 1024)
-        self.red_final = MultiFeedForwardNetwork(1024, [1024], 512)
+        self.hidden_sinusoidal = 1024
+        self.output_sinusoidal = 1024
+        self.hidden_intensidad = 1024
+        self.output_intensidad = 1024
+        self.hidden_final = 1024
+        self.output_final = 512
+        self.red_sinusoidal = MultiFeedForwardNetwork(1024, [self.hidden_sinusoidal], self.output_sinusoidal)
+        self.red_intensidad = MultiFeedForwardNetwork(self.output_sinusoidal+1, [self.hidden_intensidad], self.output_intensidad)
+        self.red_final = MultiFeedForwardNetwork(self.output_intensidad, [self.hidden_final], self.output_final)
         encoder_layer = TransformerEncoderLayer(
             1024,
             8,
@@ -59,12 +65,16 @@ class NeuralNetwork_Complex(nn.Module):
 
 
     def forward(self, x):
+        mz = x[:, 0, :]
+        i = x[:, 1, :]
+        mask = x[:, 2, :].bool()
+
         mz_frequencies =  self.sinusoidal(math.pow(10, -3.0), math.pow(10, 3.0))
-        device = x[0][0].device
+        device = mz.device
         mz_frequencies = mz_frequencies.to(device)
         #print("Mz_frequencies", mz_frequencies)
-        mz_transform = torch.einsum('bl,d->bld', x[0][0].unsqueeze(0), mz_frequencies)
-        #print("Mz_transform", mz_transform)
+        mz_transform = torch.einsum('bl,d->bld', mz, mz_frequencies)
+        #print("Mz_transform", mz_transform.shape)
         mz_sin = torch.sin(mz_transform)
         #print(mz_sin)
         mz_cos = torch.cos(mz_transform)
@@ -80,25 +90,23 @@ class NeuralNetwork_Complex(nn.Module):
         print("MZ:", mz)
         """
         mz = torch.stack((mz_sin, mz_cos), dim=-1).flatten(2)
-        #print("MZ nuevo:", mz)
+        #print("MZ nuevo:", mz.shape)
         mz = mz.contiguous()
         mz = self.red_sinusoidal(mz)
-        #print("MZ:", mz)
-        i = x[0][1]
-        i = i.unsqueeze(0)
+        #print("MZ:", mz.shape)
         i = i.to(device)
-        #print("i:", i)
-        mask = x[0][2].to(torch.bool)
-        mask = mask.unsqueeze(0)
+        #print("i:", i.shape)
         mask = mask.to(device)
         #print("mask:", mask)
         i = torch.unsqueeze(i, dim = -1)
+        #print(torch.cat([mz, i], dim=-1).shape)
         embedding_completo =self.red_intensidad(
                                     torch.cat([mz, i], dim=-1))
-        #print("embedding comleto:", embedding_completo)
+        #print("embedding comleto:", embedding_completo.shape)
         embedding_completo = self._encoder(embedding_completo, src_key_padding_mask=mask)
-        #print("embedding comleto:", embedding_completo)
+        #print("embedding comleto:", embedding_completo.shape)
         extened_mask = mask.unsqueeze(-1)
+
         masked_embeddings: torch.Tensor = embedding_completo * (~extened_mask)
         #print("embedding masked:", masked_embeddings)
         sum_embeddings = masked_embeddings.sum(dim=1)

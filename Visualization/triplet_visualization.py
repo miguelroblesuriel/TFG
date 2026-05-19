@@ -4,26 +4,27 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from datetime import datetime
 
-def visualize_embeddings_bs1(model, dataloader, device, num_samples=30):
+def visualize_embeddings_bs1(model, dataloader, device, num_samples):
     model.eval()
     all_a, all_p, all_n = [], [], []
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre_archivo = f"plot_{now}.png"
 
     with torch.no_grad():
-        for i, (anchor, positive, negative) in enumerate(dataloader):
-            if i >= num_samples:
-                break
-
+        for batch, (anchor, positive, negative) in enumerate(dataloader):
             emb_a = model(anchor.to(device)).cpu().numpy()
             emb_p = model(positive.to(device)).cpu().numpy()
             emb_n = model(negative.to(device)).cpu().numpy()
-            all_a.append(emb_a)
-            all_p.append(emb_p)
-            all_n.append(emb_n)
+            for i in range(len(emb_a)):
+                all_a.append(emb_a[i])
+                all_p.append(emb_p[i])
+                all_n.append(emb_n[i])
+                if i >= num_samples:
+                    break
+            break
 
     combined = np.vstack([np.vstack(all_a), np.vstack(all_p), np.vstack(all_n)])
-    tsne = TSNE(n_components=2, perplexity=30, init='pca', learning_rate='auto')
+    tsne = TSNE(n_components=2, perplexity=num_samples, init='pca', learning_rate='auto')
     embeddings_2d = tsne.fit_transform(combined)
 
     a_2d = embeddings_2d[:num_samples]
@@ -37,7 +38,7 @@ def visualize_embeddings_bs1(model, dataloader, device, num_samples=30):
     plt.scatter(n_2d[:, 0], n_2d[:, 1], c='red', label='Negatives', alpha=0.6)
 
     # Draw lines for the first 5 triplets to see the "gap"
-    for i in range(30):
+    for i in range(num_samples):
         plt.plot([a_2d[i, 0], p_2d[i, 0]], [a_2d[i, 1], p_2d[i, 1]], 'g--', alpha=0.3)  # Line to Positive
         plt.plot([a_2d[i, 0], n_2d[i, 0]], [a_2d[i, 1], n_2d[i, 1]], 'r--', alpha=0.3)  # Line to Negative
 

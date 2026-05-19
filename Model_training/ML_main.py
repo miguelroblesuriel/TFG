@@ -93,6 +93,7 @@ if __name__ == '__main__':
     input_testing_filepath = yaml_data['input_testing_filepath']
     output_filepath = yaml_data['output_filepath']
     mode = yaml_data['mode']
+    batch_size = yaml_data['batch_size']
     all_train_list = []
     all_test_list = []
     if mode == "remote":
@@ -116,14 +117,15 @@ if __name__ == '__main__':
       )
 
 
-    for filename in os.listdir(input_training_filepath):
+    for filename in os.listdir(input_training_filepath)[:1]:
       if filename.endswith(".npy"):
         print("a")
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_training_filepath, conn)
+        print(len(embeddings[0]['duplas'][0][0]))
         print(filename)
         all_train_list.extend(embeddings)
 
-    for filename in os.listdir(input_testing_filepath):
+    for filename in os.listdir(input_testing_filepath)[:1]:
       if filename.endswith(".npy"):
         embeddings = get_dataset_from_npy(filename.replace("_triplets_anotado.npy", ""), input_testing_filepath, conn)
         print(filename)
@@ -132,8 +134,8 @@ if __name__ == '__main__':
     print("Carga terminada")
     combined_training_dataset = ConcatDataset(all_train_list)
     combined_testing_dataset = ConcatDataset(all_test_list)
-    train_dataloader = DataLoader(combined_training_dataset, batch_size=1, shuffle=True)
-    test_dataloader = DataLoader(combined_testing_dataset, batch_size=1, shuffle=True)
+    train_dataloader = DataLoader(combined_training_dataset, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(combined_testing_dataset, batch_size=batch_size, shuffle=True)
 
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
     print(f"Using {device} device")
@@ -156,20 +158,20 @@ if __name__ == '__main__':
     print(f"Nueva salida: {anchor.shape}")
     """
     loss_fn = nn.TripletMarginLoss(margin=1.0, p=2, eps=1e-7)
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     epochs = yaml_data['epochs']
     train_loss_plot = []
     test_loss_plot = []
     for t in range(epochs):
-        visualize_embeddings_bs1(model, test_dataloader, device, 30)
+        visualize_embeddings_bs1(model, test_dataloader, device, 2)
         print(f"Epoch {t + 1}\n-------------------------------")
         avg_train_lss = train_loop(train_dataloader, model, loss_fn, optimizer)
         train_loss_plot.append(avg_train_lss)
         avg_test_loss = test_loop(test_dataloader, model, loss_fn)
         test_loss_plot.append(avg_test_loss)
 
-    visualize_embeddings_bs1(model, test_dataloader, device, 30)
+    visualize_embeddings_bs1(model, test_dataloader, device, 2)
     plot_loss(train_loss_plot, test_loss_plot)
     torch.save(model.state_dict(), os.path.join(output_filepath,"pesos_modelo.pt"))
     print("Done!")

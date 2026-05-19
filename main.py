@@ -3,7 +3,8 @@ from matchms.filtering import default_filters, normalize_intensities, add_finger
 from matchms.similarity import FingerprintSimilarity, CosineGreedy, ModifiedCosine, CosineHungarian
 from matchms.importing import load_from_mgf
 from matchms import calculate_scores
-
+from Preprocessing.obtain_validation_embeddings import obtain_validation_embeddings
+from Comparison.model_comparison import model_comparison
 from Comparison.get_hits_standard import get_hits_standard
 from Comparison.modified_cosine import modified_cosine
 from Comparison.cosine_greedy import cosine_greedy
@@ -17,6 +18,7 @@ from Preprocessing.identify_spectra import identify_spectra
 from Visualization.plot_differences_histogram import plot_differences_histogram
 from Visualization.dot_plot import dot_plot
 from Preprocessing.spectra_preprocessing import spectra_preprocessing
+from Model_training.importar_modelo import importar_modelo
 def obtener_espectros_en_comun(spectra1,spectra2):
     inchis = []
     for spec in spectra1:
@@ -47,6 +49,7 @@ for spec in spectra1:
     if spec.metadata.get('instrument_type') not in analyzers_64:
         analyzers_64.append(spec.metadata['instrument_type'])
 for spec in spectra2:
+    print(spec.metadata)
     if spec.metadata.get('instrument_type') not in analyzers_1000:
         analyzers_1000.append(spec.metadata['instrument_type'])
 print(analyzers_64)
@@ -69,6 +72,14 @@ print(mean)
 print("-------------------------------------------------------------------------------")
 greedy_scores, greedy_scores_raw = cosine_greedy(spectra1,spectra2)
 hits,mean = get_hits_standard(greedy_scores, comparison_table)
+print(hits)
+print(mean)
+print("-------------------------------------------------------------------------------")
+modelo = importar_modelo('pesos_modelo.pt')
+spectra1 = obtain_validation_embeddings(spectra1)
+spectra2 = obtain_validation_embeddings(spectra2)
+model_scores = model_comparison(spectra1,spectra2,modelo)
+hits,mean = get_hits_standard(model_scores, comparison_table)
 print(hits)
 print(mean)
 print("-------------------------------------------------------------------------------")

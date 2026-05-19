@@ -12,5 +12,6 @@ port: "5432"
 mode: "local" #remote/local en función de dónde tengas la base de datos
 
 # Configuracion ML
+batch_size: 2
 epochs: 2
 
