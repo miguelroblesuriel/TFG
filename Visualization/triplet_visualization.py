@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from datetime import datetime
 
-def visualize_embeddings_bs1(model, dataloader, device, num_samples):
+def visualize_embeddings_bs1(model, dataloader, device, num_samples, batch_size):
     model.eval()
     all_a, all_p, all_n = [], [], []
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nombre_archivo = f"plot_{now}.png"
+    nombre_archivo = f"plot_{batch_size}_{now}.png"
 
     with torch.no_grad():
         for batch, (anchor, positive, negative) in enumerate(dataloader):
