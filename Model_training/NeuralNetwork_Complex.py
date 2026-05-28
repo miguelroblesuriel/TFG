@@ -115,4 +115,5 @@ class NeuralNetwork_Complex(nn.Module):
         #print(" embedding_ponderado:", embedding_ponderado)
         embedding_final = self.red_final(embedding_ponderado)
         #print(" embedding_final:", embedding_final)
+        embedding_final = F.normalize(embedding_final, p=2, dim=1)
         return  embedding_final
