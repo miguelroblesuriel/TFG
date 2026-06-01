@@ -96,6 +96,7 @@ if __name__ == '__main__':
     output_filepath = yaml_data['output_filepath']
     mode = yaml_data['mode']
     batch_sizes = yaml_data['batch_sizes']
+    margins = yaml_data['margins']
     all_train_list = []
     all_test_list = []
     if mode == "remote":
@@ -142,47 +143,48 @@ if __name__ == '__main__':
     combined_training_dataset = ConcatDataset(all_train_list)
     combined_testing_dataset = ConcatDataset(all_test_list)
     for batch_size in batch_sizes:
-        train_dataloader = DataLoader(combined_training_dataset, batch_size=batch_size, shuffle=True)
-        test_dataloader = DataLoader(combined_testing_dataset, batch_size=batch_size, shuffle=True)
+        for margin in margins:
+            train_dataloader = DataLoader(combined_training_dataset, batch_size=batch_size, shuffle=True)
+            test_dataloader = DataLoader(combined_testing_dataset, batch_size=batch_size, shuffle=True)
 
-        device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-        print(f"Using {device} device")
-        model = NeuralNetwork_Complex(emb_length).to(device)
-        """
-        anchor, positive, negative = next(iter(train_dataloader))
-        anchor_tensor = torch.stack(anchor).float()
-        if anchor_tensor.shape[0] == 7655:
-            anchor_tensor = anchor_tensor.view(1, -1)
-        positive_tensor = torch.stack(positive).float()
-        negative_tensor = torch.stack(negative).float()
-        if positive_tensor.shape[0] == 7655:
-            positive_tensor = positive_tensor.view(1, -1)
-            negative_tensor = negative_tensor.view(1, -1)
-    
-        print(f"Nueva entrada: {anchor_tensor.shape}")
-        anchor = model(anchor_tensor.to(device))
-        positive = model(positive_tensor.to(device))
-        negative = model(negative_tensor.to(device))
-        print(f"Nueva salida: {anchor.shape}")
-        """
-        loss_fn = nn.TripletMarginLoss(margin=1.0, p=2, eps=1e-7)
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+            device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+            print(f"Using {device} device")
+            model = NeuralNetwork_Complex(emb_length).to(device)
+            """
+            anchor, positive, negative = next(iter(train_dataloader))
+            anchor_tensor = torch.stack(anchor).float()
+            if anchor_tensor.shape[0] == 7655:
+                anchor_tensor = anchor_tensor.view(1, -1)
+            positive_tensor = torch.stack(positive).float()
+            negative_tensor = torch.stack(negative).float()
+            if positive_tensor.shape[0] == 7655:
+                positive_tensor = positive_tensor.view(1, -1)
+                negative_tensor = negative_tensor.view(1, -1)
+        
+            print(f"Nueva entrada: {anchor_tensor.shape}")
+            anchor = model(anchor_tensor.to(device))
+            positive = model(positive_tensor.to(device))
+            negative = model(negative_tensor.to(device))
+            print(f"Nueva salida: {anchor.shape}")
+            """
+            loss_fn = nn.TripletMarginLoss(margin=margin, p=2, eps=1e-7)
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-        epochs = yaml_data['epochs']
-        train_loss_plot = []
-        test_loss_plot = []
-        for t in range(epochs):
-            visualize_embeddings_bs1(model, test_dataloader, device, 30, batch_size)
-            print(f"Epoch {t + 1}\n-------------------------------")
-            avg_train_lss = train_loop(train_dataloader, model, loss_fn, optimizer)
-            train_loss_plot.append(avg_train_lss)
-            avg_test_loss = test_loop(test_dataloader, model, loss_fn)
-            test_loss_plot.append(avg_test_loss)
+            epochs = yaml_data['epochs']
+            train_loss_plot = []
+            test_loss_plot = []
+            for t in range(epochs):
+                visualize_embeddings_bs1(model, test_dataloader, device, 30, batch_size, margin)
+                print(f"Epoch {t + 1}\n-------------------------------")
+                avg_train_lss = train_loop(train_dataloader, model, loss_fn, optimizer)
+                train_loss_plot.append(avg_train_lss)
+                avg_test_loss = test_loop(test_dataloader, model, loss_fn)
+                test_loss_plot.append(avg_test_loss)
 
-        visualize_embeddings_bs1(model, test_dataloader, device, 30, batch_size)
-        plot_loss(train_loss_plot, test_loss_plot, batch_size)
-        nombre_archivo = "pesos_modelo" + str(batch_size) + ".pt"
-        torch.save(model.state_dict(), os.path.join(output_filepath,nombre_archivo))
-        print("Done!")
+            visualize_embeddings_bs1(model, test_dataloader, device, 30, batch_size, margin)
+            plot_loss(train_loss_plot, test_loss_plot, batch_size, margin)
+            nombre_archivo = "pesos_modelo" + str(batch_size) +"_"+ str(margin) +".pt"
+            torch.save(model.state_dict(), os.path.join(output_filepath,nombre_archivo))
+            print("Done!")
 
 
