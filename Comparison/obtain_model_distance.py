@@ -9,5 +9,5 @@ def obtain_model_distance(v1, v2):
     # 3. Aplicamos la raíz cuadrada (ya que p=2)
     distancia = torch.sqrt(suma_cuadrados)
 
-    print("Distancia exacta:", distancia.item())
+    #print("Distancia exacta:", distancia.item())
     return distancia

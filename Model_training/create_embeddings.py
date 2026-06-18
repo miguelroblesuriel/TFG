@@ -1,8 +1,8 @@
 import numpy as np
 def create_embeddings(scan,intensity,mz,precmz):
     embedding = (
-            precmz.astype(float).tolist() +
-            mz.astype(float).tolist() +
+            [precmz] +                                            #precmz.astype(float).tolist()
+            mz.astype(float).tolist() + [-1] +
             intensity.astype(float).tolist()
     )
     scan_info = {

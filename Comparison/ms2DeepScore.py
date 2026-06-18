@@ -8,9 +8,16 @@ def ms2DeepScore_standard(file1,file2 = None):
     model_file_name = "ms2deepscore_model.pt"
     model = load_model(model_file_name)
 
-    pipeline = Pipeline(create_workflow(query_filters=DEFAULT_FILTERS,
-                                        score_computations=[[MS2DeepScore, {"model": model}]]))
-    report = pipeline.run(file1)
+    workflow = create_workflow(
+        query_filters=DEFAULT_FILTERS,
+        reference_filters=DEFAULT_FILTERS,
+        score_computations=[[MS2DeepScore, {"model": model}]]
+    )
+    pipeline = Pipeline(workflow)
+    if file2:
+        report = pipeline.run(query_files=file1, reference_files=file2)
+    else:
+        report = pipeline.run(query_files=file1, reference_files=file1)
     similarity_matrix = pipeline.scores.to_array()
     return similarity_matrix
 

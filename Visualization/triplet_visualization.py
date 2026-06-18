@@ -11,17 +11,18 @@ def visualize_embeddings_bs1(model, dataloader, device, num_samples, batch_size,
     nombre_archivo = f"plot_{batch_size}_{margin}_{now}.png"
 
     with torch.no_grad():
-        for batch, (anchor, positive, negative) in enumerate(dataloader):
-            emb_a = model(anchor.to(device)).cpu().numpy()
-            emb_p = model(positive.to(device)).cpu().numpy()
-            emb_n = model(negative.to(device)).cpu().numpy()
-            for i in range(len(emb_a)):
-                all_a.append(emb_a[i])
-                all_p.append(emb_p[i])
-                all_n.append(emb_n[i])
-                if i >= num_samples:
-                    break
-            break
+        for j in range(num_samples):
+            for batch, (anchor, positive, negative) in enumerate(dataloader):
+                emb_a = model(anchor.to(device)).cpu().numpy()
+                emb_p = model(positive.to(device)).cpu().numpy()
+                emb_n = model(negative.to(device)).cpu().numpy()
+                for i in range(len(emb_a)):
+                    all_a.append(emb_a[i])
+                    all_p.append(emb_p[i])
+                    all_n.append(emb_n[i])
+                    if i >= num_samples:
+                        break
+                break
 
     combined = np.vstack([np.vstack(all_a), np.vstack(all_p), np.vstack(all_n)])
     tsne = TSNE(n_components=2, perplexity=num_samples, init='pca', learning_rate='auto')

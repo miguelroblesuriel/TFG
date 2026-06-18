@@ -22,6 +22,9 @@ def train_loop(dataloader, model, loss_fn, optimizer):
     model.train()
     test_loss = 0
     num_batches = len(dataloader)
+    var_anc_pos = []
+    var_anc_neg = []
+    var_pos_neg = []
     for batch, (anchor, positive, negative) in enumerate(dataloader):
         """
         anchor_tensor = torch.stack(anchor).float()
@@ -32,10 +35,16 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         positive_tensor = positive.view(1, -1)
         negative_tensor = negative.view(1, -1)
         """
-        
+        print(anchor)
         anchor = model(anchor.to(device))
         positive = model(positive.to(device))
         negative = model(negative.to(device))
+        diff_anc_pos = anchor - positive
+        diff_anc_neg = anchor - negative
+        diff_pos_neg = positive - negative
+        var_anc_pos.append(diff_anc_pos.var().item())
+        var_anc_neg.append(diff_anc_neg.var().item())
+        var_pos_neg.append(diff_pos_neg.var().item())
         loss = loss_fn(anchor,positive, negative)
         test_loss += loss.item()
         # Backpropagation
@@ -48,9 +57,13 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         if batch % 100 == 0:
             loss, current = loss.item(), batch * 1 + len(anchor)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-
+    metrics = {
+        "anchor_minus_positive": var_anc_pos,
+        "anchor_minus_negative": var_anc_neg,
+        "positive_minus_negative": var_pos_neg
+    }
     test_loss /= num_batches
-    return test_loss
+    return test_loss, metrics
 
 
 
@@ -168,18 +181,23 @@ if __name__ == '__main__':
             print(f"Nueva salida: {anchor.shape}")
             """
             loss_fn = nn.TripletMarginLoss(margin=margin, p=2, eps=1e-7)
-            optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+            optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
 
             epochs = yaml_data['epochs']
             train_loss_plot = []
             test_loss_plot = []
+
             for t in range(epochs):
                 visualize_embeddings_bs1(model, test_dataloader, device, 30, batch_size, margin)
                 print(f"Epoch {t + 1}\n-------------------------------")
-                avg_train_lss = train_loop(train_dataloader, model, loss_fn, optimizer)
+                avg_train_lss, metrics = train_loop(train_dataloader, model, loss_fn, optimizer)
                 train_loss_plot.append(avg_train_lss)
                 avg_test_loss = test_loop(test_dataloader, model, loss_fn)
                 test_loss_plot.append(avg_test_loss)
+                with open("metrics.txt", "a", encoding="utf-8") as file:
+                    file.write("Epoch" + str(t+1) + "\n")
+                    file.write(str(metrics) + "\n")
+                    file.close()
 
             visualize_embeddings_bs1(model, test_dataloader, device, 30, batch_size, margin)
             plot_loss(train_loss_plot, test_loss_plot, batch_size, margin)

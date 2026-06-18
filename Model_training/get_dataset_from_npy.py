@@ -14,8 +14,9 @@ def obtener_embedding_archivo(conn, nombre_archivo):
             SELECT scan, embedding
             FROM embeddings
             WHERE filename = :archivo; \
+                
+                
             """
-
     mapa_resultado = {}
 
     try:

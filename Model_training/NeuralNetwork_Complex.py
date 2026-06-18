@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 import torch
 import math
-
+from sklearn.preprocessing import RobustScaler
 from torch.nn import TransformerEncoderLayer, TransformerEncoder
 
 
@@ -65,10 +65,11 @@ class NeuralNetwork_Complex(nn.Module):
 
 
     def forward(self, x):
-        mz = x[:, 0, :]
+        scaler = RobustScaler()
+        mz = scaler.fit_transform(x[:, 0, :])
+        mz = torch.tensor(mz, dtype=torch.float32)
         i = x[:, 1, :]
         mask = x[:, 2, :].bool()
-
         mz_frequencies =  self.sinusoidal(math.pow(10, -3.0), math.pow(10, 3.0))
         device = mz.device
         mz_frequencies = mz_frequencies.to(device)

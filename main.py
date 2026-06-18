@@ -4,6 +4,7 @@ from matchms.similarity import FingerprintSimilarity, CosineGreedy, ModifiedCosi
 from matchms.importing import load_from_mgf
 from matchms import calculate_scores
 from Preprocessing.obtain_validation_embeddings import obtain_validation_embeddings
+from Preprocessing.obtain_validation_embeddings_0 import obtain_validation_embeddings_0
 from Comparison.model_comparison import model_comparison
 from Comparison.get_hits_standard import get_hits_standard
 from Comparison.modified_cosine import modified_cosine
@@ -35,16 +36,18 @@ import os
 
 path_data = "./"
 file_mgf1 = os.path.join(path_data,
-                        "GNPS-SELLECKCHEM-FDA-PART1_filtrado.mgf")
+                        "GNPS-SELLECKCHEM-FDA-PART1.mgf")
 file_mgf2 = os.path.join(path_data,
                         "MONA_filtrado.mgf")
 spectra1 = list(load_from_mgf(file_mgf1))
 print("cargando archivo 2")
 spectra2 = list(load_from_mgf(file_mgf2))
+spectra2 = spectra2
 print(len(spectra2))
 print(len(spectra1))
 analyzers_64 = []
 analyzers_1000 = []
+"""
 for spec in spectra1:
     if spec.metadata.get('instrument_type') not in analyzers_64:
         analyzers_64.append(spec.metadata['instrument_type'])
@@ -54,19 +57,10 @@ for spec in spectra2:
         analyzers_1000.append(spec.metadata['instrument_type'])
 print(analyzers_64)
 print(analyzers_1000)
-modified_scores, modified_scores_raw = modified_cosine(spectra2, spectra1)
-hits, mean = get_modified_hits(spectra1, modified_scores_raw)
-print(hits)
-print(mean)
-print("-------------------------------------------------------------------------------")
+"""
 modified_scores, modified_scores_raw = modified_cosine(spectra1, spectra2)
 comparison_table = identify_spectra(spectra1, spectra2)
-hits,mean = get_hits_standard(modified_scores, comparison_table)
-print(hits)
-print(mean)
-print("-------------------------------------------------------------------------------")
-greedy_scores, greedy_scores_raw = cosine_greedy(spectra2,spectra1)
-hits, mean = get_greedy_hits(spectra1, greedy_scores_raw)
+hits, mean = get_hits_standard(modified_scores, comparison_table)
 print(hits)
 print(mean)
 print("-------------------------------------------------------------------------------")
@@ -75,20 +69,47 @@ hits,mean = get_hits_standard(greedy_scores, comparison_table)
 print(hits)
 print(mean)
 print("-------------------------------------------------------------------------------")
-modelo = importar_modelo('pesos_modelo.pt')
-spectra1 = obtain_validation_embeddings(spectra1)
-spectra2 = obtain_validation_embeddings(spectra2)
-model_scores = model_comparison(spectra1,spectra2,modelo)
-hits,mean = get_hits_standard(model_scores, comparison_table)
+ms2_standard_scores = ms2DeepScore_standard(file_mgf2,file_mgf1)
+print(ms2_standard_scores)
+print(ms2_standard_scores.shape)
+hits,mean = get_hits_standard(ms2_standard_scores, comparison_table)
 print(hits)
 print(mean)
 print("-------------------------------------------------------------------------------")
 """
+comparison_table = identify_spectra(spectra1, spectra2)
+modelo = importar_modelo('pesos_modelo_0_1.pt')
+spectra1 = obtain_validation_embeddings_0(spectra1)
+spectra2 = obtain_validation_embeddings_0(spectra2)
+model_scores = model_comparison(spectra1,spectra2,modelo)
+hits1,mean1 = get_hits_standard(model_scores, comparison_table)
+print(hits1)
+print(mean1)
+print("-------------------------------------------------------------------------------")
+modelo = importar_modelo('pesos_modelo_0.3.pt')
+model_scores = model_comparison(spectra1,spectra2,modelo)
+hits1,mean1 = get_hits_standard(model_scores, comparison_table)
+print(hits1)
+print(mean1)
+print("-------------------------------------------------------------------------------")
+modelo = importar_modelo('pesos_modelo_0_5.pt')
+model_scores = model_comparison(spectra1,spectra2,modelo)
+hits1,mean1 = get_hits_standard(model_scores, comparison_table)
+print(hits1)
+print(mean1)
+print("-------------------------------------------------------------------------------")
+modelo = importar_modelo('pesos_modelo_06.pt')
+model_scores = model_comparison(spectra1,spectra2,modelo)
+hits2,mean2 = get_hits_standard(model_scores, comparison_table)
+print(hits2)
+print(mean2)
+print("-------------------------------------------------------------------------------")
+
 tanimoto_scores = tanimoto(file_mgf)
 
 
 hungarian_scores = cosine_hungarian(file_mgf)
-ms2_standard_scores = ms2DeepScore_standard(file_mgf)
+
 """
 """
 print("Ms2: ")

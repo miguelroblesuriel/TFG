@@ -8,6 +8,7 @@ def get_hits_standard(scores, comparison_table):
         j = 0
         indices = np.argsort(row)
         indices_desc = indices[::-1]
+        #print(indices_desc)
         for index in indices_desc:
             if index in comparison_table[i] and j == 0:
                 hits += 1
